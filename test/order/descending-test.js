@@ -17,3 +17,13 @@ it("stackOrderDescending(series) treats NaN values as zero", () => {
     [[0, 0], [0, 1], [0, 2], [0, NaN]]
   ]), [1, 0, 2]);
 });
+
+it("stackOrderDescending(series) compares absolute-value thickness", () => {
+  // thickness: |-1| + |-2| = 3; |1| + |-3| = 4; |2| + |2| = 4; the tied pair
+  // keeps its relative order, then the whole ascending order is reversed
+  assert.deepStrictEqual(stackOrderDescending([
+    [[0, -1], [0, -2]],
+    [[0,  1], [0, -3]],
+    [[0,  2], [0,  2]]
+  ]), [2, 1, 0]);
+});

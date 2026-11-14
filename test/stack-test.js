@@ -110,6 +110,54 @@ it("stack.offset(function) sets the offset function", () => {
   ].map(roundSeries));
 });
 
+it("stack(data) treats missing fields (undefined) as zero instead of NaN", () => {
+  const s = stack().keys(["a", "b"]);
+  const data = [{a: 1}, {a: 2, b: 3}, {b: 4}];
+  assert.deepStrictEqual(s(data).map(s => s.map(p => [p[0], p[1]])), [
+    [[0, 1], [0, 2], [0, 0]],
+    [[1, 1], [2, 5], [0, 4]]
+  ]);
+  assert.deepStrictEqual(s(data).flatMap(s => s).some(p => isNaN(p[0]) || isNaN(p[1])), false);
+});
+
+it("stack(data) treats explicit null values as zero", () => {
+  const s = stack().keys(["a", "b"]);
+  const data = [{a: 1, b: null}, {a: null, b: 3}];
+  assert.deepStrictEqual(s(data).map(s => s.map(p => [p[0], p[1]])), [
+    [[0, 1], [0, 0]],
+    [[1, 1], [0, 3]]
+  ]);
+});
+
+it("stack(data) preserves explicit NaN values", () => {
+  const s = stack().keys(["a", "b"]);
+  const data = [{a: 1, b: NaN}, {a: NaN, b: 3}];
+  const out = s(data);
+  assert(isNaN(out[0][1][1]));
+  assert(isNaN(out[1][0][1]));
+  assert.deepStrictEqual(out.map(s => s.map(p => [p[0], isNaN(p[1]) ? "NaN" : p[1]])), [
+    [[0, 1], [0, "NaN"]],
+    [[1, "NaN"], [0, 3]]
+  ]);
+});
+
+it("stack(data) with stackOffsetExpand normalizes mixed-sign and missing values", () => {
+  const s = stack().keys(["a", "b"]).offset(stackOffsetExpand);
+  // column 0: all negative (-2, -4); column 1: balanced (3, -3);
+  // column 2: mixed signs (3, -1); column 3: missing field on b (2, missing)
+  const data = [
+    {a: -2, b: -4},
+    {a:  3, b: -3},
+    {a:  3, b: -1},
+    {a:  2}
+  ];
+  assert.deepStrictEqual(s(data).map(s => s.map(p => [p[0], p[1]])), [
+    [[-1 / 3, 0], [0, 1 / 2], [0, 3 / 4], [0, 1]],
+    [[-1, -1 / 3], [-1 / 2, 0], [-1 / 4, 0], [1, 1]]
+  ]);
+  assert.deepStrictEqual(s(data).flatMap(s => s).some(p => isNaN(p[0]) || isNaN(p[1])), false);
+});
+
 function series(series, data, key, index) {
   data.forEach(function(d, i) { series[i].data = d; });
   series.key = key;

@@ -7,6 +7,12 @@ function stackValue(d, key) {
   return d[key];
 }
 
+// Missing fields (null or undefined) are treated as zero; explicit NaN values
+// are preserved so the offset functions can keep their existing NaN semantics.
+function stackNumber(value) {
+  return value == null ? 0 : +value;
+}
+
 function stackSeries(key) {
   const series = [];
   series.key = key;
@@ -26,7 +32,7 @@ export default function() {
 
     for (const d of data) {
       for (i = 0, ++j; i < n; ++i) {
-        (sz[i][j] = [0, +value(d, sz[i].key, j, data)]).data = d;
+        (sz[i][j] = [0, stackNumber(value(d, sz[i].key, j, data))]).data = d;
       }
     }
 
